@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Neon Gem Merge">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.65" y2="1">
+      <stop offset="0" stop-color="#182741"/>
+      <stop offset="0.55" stop-color="#0F1929"/>
+      <stop offset="1" stop-color="#090F1A"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.44" r="0.48">
+      <stop offset="0" stop-color="#8E7BE0" stop-opacity="0.42"/>
+      <stop offset="0.6" stop-color="#7FB6E8" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#7FB6E8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gem" x1="0.18" y1="0.08" x2="0.82" y2="0.95">
+      <stop offset="0" stop-color="#FBFCFF"/>
+      <stop offset="0.30" stop-color="#E3E9FF"/>
+      <stop offset="0.58" stop-color="#BEB2F8"/>
+      <stop offset="0.82" stop-color="#9A87E6"/>
+      <stop offset="1" stop-color="#7A66C9"/>
+    </linearGradient>
+    <linearGradient id="girdle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="sparkle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#CFE2FF"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="230" r="210" fill="url(#halo)"/>
+
+  <g>
+    <!-- soft shadow under the gem -->
+    <ellipse cx="256" cy="398" rx="132" ry="26" fill="#05090F" opacity="0.55" filter="url(#soft)"/>
+
+    <!-- gem silhouette -->
+    <path d="M190 142 L322 142 L402 238 L330 350 L256 406 L182 350 L110 238 Z"
+          fill="url(#gem)" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3"/>
+
+    <!-- crown / pavilion facets -->
+    <g stroke="#FFFFFF" stroke-opacity="0.30" stroke-width="2.4" fill="none" stroke-linejoin="round">
+      <path d="M190 142 L256 196 L322 142"/>
+      <path d="M110 238 L256 196 L402 238"/>
+      <path d="M256 196 L256 406"/>
+      <path d="M110 238 L330 350"/>
+      <path d="M402 238 L182 350"/>
+      <path d="M182 350 L256 406 L330 350"/>
+    </g>
+
+    <!-- table highlight -->
+    <path d="M190 142 L322 142 L300 178 L212 178 Z" fill="#FFFFFF" opacity="0.22"/>
+    <path d="M110 238 L402 238 L396 252 L116 252 Z" fill="url(#girdle)" opacity="0.5"/>
+
+    <!-- glass glint -->
+    <ellipse cx="206" cy="186" rx="52" ry="24" transform="rotate(-24 206 186)"
+             fill="#FFFFFF" opacity="0.55" filter="url(#soft)"/>
+    <ellipse cx="196" cy="176" rx="20" ry="9" transform="rotate(-24 196 176)"
+             fill="#FFFFFF" opacity="0.75"/>
+
+    <!-- reflected light at the bottom -->
+    <path d="M214 356 L256 386 L298 356 L256 368 Z" fill="#E8F1FF" opacity="0.28"/>
+
+    <!-- sparkles -->
+    <g fill="url(#sparkle)">
+      <path d="M392 128 L399 150 L421 157 L399 164 L392 186 L385 164 L363 157 L385 150 Z" opacity="0.95"/>
+      <path d="M132 300 L137 314 L151 319 L137 324 L132 338 L127 324 L113 319 L127 314 Z" opacity="0.7"/>
+      <path d="M340 372 L343 381 L352 384 L343 387 L340 396 L337 387 L328 384 L337 381 Z" opacity="0.55"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+{
+  "name": "네온 젬 머지 · Neon Gem Merge",
+  "short_name": "네온 젬",
+  "description": "같은 보석을 합쳐 코스믹 다이아몬드까지 진화시키는 캐주얼 퍼즐 게임.",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "portrait",
+  "background_color": "#0A101B",
+  "theme_color": "#0B1220",
+  "lang": "ko",
+  "dir": "ltr",
+  "categories": ["games", "puzzle", "entertainment"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

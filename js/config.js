@@ -64,5 +64,23 @@ export const STORAGE = {
   best: 'ngm.best.v1',
   sound: 'ngm.sound.v1',
   tutorial: 'ngm.tutorial.v1',
-  codex: 'ngm.codex.v1'
+  codex: 'ngm.codex.v1',
+  coins: 'ngm.coins.v1',
+  plays: 'ngm.plays.v1',
+  themes: 'ngm.themes.v1',
+  theme: 'ngm.theme.v1',
+  packs: 'ngm.packs.v1',
+  lang: 'ngm.lang.v1',
+  welcome: 'ngm.welcome.v1'
+};
+
+/* Star-coin economy: earned by playing, spent in the shop. */
+export const ECONOMY = {
+  welcome: 150,                                  // one-time gift for a new player
+  mergeCoin: (level) => level,                   // a merge to level L pays L coins
+  cosmicCoin: 25,                                // two cosmic diamonds colliding
+  runBonus: (score) => Math.floor(score / 200),  // end-of-run bonus
+  adCoins: 150,                                  // rewarded ad in the shop
+  boosterPack: 100,                              // price of one booster pack
+  boosterPackSize: 2                             // extra charges applied next run
 };

@@ -1,7 +1,7 @@
 /* Neon Gem Merge — offline shell.
  * Bump CACHE_NAME whenever the app files change. */
 
-const CACHE_NAME = 'neon-gem-merge-v1.0.0';
+const CACHE_NAME = 'neon-gem-merge-v1.1.0';
 const ASSETS = [
   './',
   './index.html',
@@ -15,6 +15,11 @@ const ASSETS = [
   './js/config.js',
   './js/i18n.js',
   './js/admob-bridge.js',
+  './js/themes.js',
+  './js/profile.js',
+  './js/lobby.js',
+  './js/shop.js',
+  './js/codex.js',
   './fonts/ngm-sans.woff2',
   './icons/icon.svg',
   './icons/icon-192.png',

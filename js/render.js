@@ -4,8 +4,28 @@
  */
 
 import { tierOf, DESIGN_WIDTH } from './config.js';
+import { buildGemPalette, themeById, DEFAULT_THEME_ID } from './themes.js';
 
 const TAU = Math.PI * 2;
+
+/* ----------------------------------------------------------------- themes */
+
+let THEME = themeById(DEFAULT_THEME_ID);
+let PALETTE = buildGemPalette(THEME);
+
+export function setTheme(themeOrId) {
+  THEME = typeof themeOrId === 'string' ? themeById(themeOrId) : (themeOrId || themeById(DEFAULT_THEME_ID));
+  PALETTE = buildGemPalette(THEME);
+  return THEME;
+}
+
+export function getTheme() {
+  return THEME;
+}
+
+function paletteFor(tier) {
+  return PALETTE[Math.max(0, Math.min(PALETTE.length - 1, tier - 1))] || tierOf(tier);
+}
 
 /* ---------------------------------------------------------------- helpers */
 
@@ -181,7 +201,7 @@ function drawSparkle(ctx, r, alpha = 1) {
  * Draw one gem centred at (x, y). `scale` is used for spawn pop animations.
  */
 export function drawGem(ctx, gem, time = 0, opts = {}) {
-  const tierInfo = tierOf(gem.tier);
+  const tierInfo = paletteFor(gem.tier);
   const r = gem.r;
   const scale = opts.scale ?? 1;
   const alpha = opts.alpha ?? 1;
@@ -431,32 +451,49 @@ export function makeDust(count, w, h) {
   return arr;
 }
 
-export function drawBackground(ctx, w, h, time, dust) {
+export function drawBackground(ctx, w, h, time, dust, theme) {
+  const th = theme || THEME;
+  const bgSet = th.bg || THEME.bg;
   const bg = ctx.createLinearGradient(0, 0, w * 0.3, h);
-  bg.addColorStop(0, '#0D1421');
-  bg.addColorStop(0.45, '#111A2A');
-  bg.addColorStop(1, '#0A1019');
+  bg.addColorStop(0, bgSet.stops[0]);
+  bg.addColorStop(0.45, bgSet.stops[1]);
+  bg.addColorStop(1, bgSet.stops[2]);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
   // two very soft aurora pools
-  const blobs = [
-    { x: w * 0.18, y: h * 0.16, r: w * 0.85, c: 'rgba(120, 170, 220, 0.11)' },
-    { x: w * 0.92, y: h * 0.72, r: w * 0.95, c: 'rgba(150, 130, 210, 0.09)' }
-  ];
-  for (const b of blobs) {
-    const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-    g.addColorStop(0, b.c);
+  for (const b of bgSet.lights) {
+    const x = parseFloat(b[0]) * w;
+    const y = parseFloat(b[1]) * h;
+    const r = parseFloat(b[2]) * w;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${b[3]}, ${b[4]})`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
   }
 
+  // a quiet star field for the deep-space theme
+  if (bgSet.stars) {
+    ctx.save();
+    for (let i = 0; i < 46; i++) {
+      const sx = ((i * 73.31) % 97) / 97 * w;
+      const sy = ((i * 41.17) % 89) / 89 * h;
+      const tw = 0.35 + 0.65 * Math.abs(Math.sin(time * 0.55 + i * 1.7));
+      const sr = 0.4 + ((i * 13) % 7) * 0.16;
+      ctx.fillStyle = `rgba(${bgSet.dust}, ${(bgSet.dustAlpha * 0.30 * tw).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // soft light falloff behind the play area (no hard vertical edges)
   const col = ctx.createRadialGradient(w * 0.5, h * 0.42, 0, w * 0.5, h * 0.42, w * 0.72);
-  col.addColorStop(0, 'rgba(178, 206, 255, 0.045)');
-  col.addColorStop(0.55, 'rgba(178, 206, 255, 0.018)');
-  col.addColorStop(1, 'rgba(178, 206, 255, 0)');
+  col.addColorStop(0, `rgba(${bgSet.column}, 0.045)`);
+  col.addColorStop(0.55, `rgba(${bgSet.column}, 0.018)`);
+  col.addColorStop(1, `rgba(${bgSet.column}, 0)`);
   ctx.fillStyle = col;
   ctx.fillRect(0, 0, w, h);
 
@@ -467,7 +504,7 @@ export function drawBackground(ctx, w, h, time, dust) {
       const y = (d.y - time * d.sp) % h;
       const yy = y < 0 ? y + h : y;
       const tw = 0.6 + 0.4 * Math.sin(time * 0.9 + d.ph);
-      ctx.fillStyle = 'rgba(220, 235, 255,' + (d.a * tw).toFixed(3) + ')';
+      ctx.fillStyle = `rgba(${bgSet.dust}, ${(d.a * tw * (bgSet.dustAlpha || 1)).toFixed(3)})`;
       ctx.beginPath();
       ctx.arc(d.x, yy, d.r, 0, TAU);
       ctx.fill();
@@ -477,21 +514,21 @@ export function drawBackground(ctx, w, h, time, dust) {
 
   // floor warmth
   const fl = ctx.createLinearGradient(0, h * 0.86, 0, h);
-  fl.addColorStop(0, 'rgba(140, 170, 220, 0)');
-  fl.addColorStop(1, 'rgba(140, 170, 220, 0.07)');
+  fl.addColorStop(0, `rgba(${bgSet.floor}, 0)`);
+  fl.addColorStop(1, `rgba(${bgSet.floor}, 0.07)`);
   ctx.fillStyle = fl;
   ctx.fillRect(0, h * 0.86, w, h * 0.14);
 
   // soft side walls: gives the play field a quiet container feel
   const side = 30;
   const sl = ctx.createLinearGradient(0, 0, side, 0);
-  sl.addColorStop(0, 'rgba(3, 6, 12, 0.55)');
-  sl.addColorStop(1, 'rgba(3, 6, 12, 0)');
+  sl.addColorStop(0, `rgba(${bgSet.wall}, 0.55)`);
+  sl.addColorStop(1, `rgba(${bgSet.wall}, 0)`);
   ctx.fillStyle = sl;
   ctx.fillRect(0, 0, side, h);
   const sr = ctx.createLinearGradient(w, 0, w - side, 0);
-  sr.addColorStop(0, 'rgba(3, 6, 12, 0.55)');
-  sr.addColorStop(1, 'rgba(3, 6, 12, 0)');
+  sr.addColorStop(0, `rgba(${bgSet.wall}, 0.55)`);
+  sr.addColorStop(1, `rgba(${bgSet.wall}, 0)`);
   ctx.fillStyle = sr;
   ctx.fillRect(w - side, 0, side, h);
 }
@@ -515,10 +552,88 @@ function mix(a, b, t) {
   return `rgb(${r},${g},${bl})`;
 }
 
-/** Draw a small standalone gem into any 2D context (used by the next preview). */
-export function drawGemIcon(ctx, tier, x, y, r, time = 0, alpha = 1) {
+/** Draw a small standalone gem into any 2D context (used by the next preview).
+ *  Pass `theme` to draw it in another theme's palette (shop previews). */
+export function drawGemIcon(ctx, tier, x, y, r, time = 0, alpha = 1, theme = null) {
+  const prevTheme = THEME;
+  const prevPalette = PALETTE;
+  if (theme) {
+    THEME = theme;
+    PALETTE = buildGemPalette(theme);
+  }
   const fake = { x, y, r, tier, angle: 0 };
   drawGem(ctx, fake, time, { halo: false, shadow: false, alpha });
+  if (theme) {
+    THEME = prevTheme;
+    PALETTE = prevPalette;
+  }
+}
+
+/** Unmet gem: the same silhouette, drained of colour, behind a lock. */
+export function drawGemSilhouette(ctx, tier, x, y, r, alpha = 1) {
+  const info = tierOf(tier);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = alpha;
+  gemShapePath(ctx, info.shape, r);
+  const g = ctx.createLinearGradient(0, -r, 0, r);
+  g.addColorStop(0, 'rgba(196, 212, 238, 0.13)');
+  g.addColorStop(1, 'rgba(196, 212, 238, 0.05)');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(198, 214, 240, 0.20)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // a tiny lock at a size that still reads at 24px
+  const s = Math.max(5, r * 0.34);
+  ctx.globalAlpha = alpha * 0.6;
+  ctx.strokeStyle = 'rgba(214, 228, 250, 0.55)';
+  ctx.lineWidth = Math.max(1, s * 0.16);
+  ctx.beginPath();
+  ctx.arc(0, -s * 0.28, s * 0.34, Math.PI, 0);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(214, 228, 250, 0.42)';
+  ctx.beginPath();
+  ctx.roundRect(-s * 0.52, -s * 0.28, s * 1.04, s * 0.86, s * 0.18);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A compact theme preview: its background wash plus three of its gems. */
+export function drawThemeSwatch(ctx, w, h, theme, time = 0) {
+  const th = theme || THEME;
+  const saved = THEME;
+  THEME = th;
+  ctx.save();
+  const bg = ctx.createLinearGradient(0, 0, w * 0.4, h);
+  bg.addColorStop(0, th.bg.stops[0]);
+  bg.addColorStop(0.5, th.bg.stops[1]);
+  bg.addColorStop(1, th.bg.stops[2]);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  for (const b of th.bg.lights) {
+    const x = parseFloat(b[0]) * w;
+    const y = parseFloat(b[1]) * h;
+    const r = Math.max(w, h) * parseFloat(b[2]) * 0.9;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${b[3]}, ${b[4]})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+  const prevPalette = PALETTE;
+  PALETTE = buildGemPalette(th);
+  const cy = h * 0.56;
+  const r1 = Math.min(h * 0.24, w * 0.16);
+  ctx.globalAlpha = 0.55;
+  drawGem(ctx, { x: w * 0.19, y: cy + 1, r: r1 * 0.8, tier: 2, angle: 0.2 }, time, { halo: false, shadow: false });
+  ctx.globalAlpha = 1;
+  drawGem(ctx, { x: w * 0.46, y: cy, r: r1, tier: 5, angle: -0.1 }, time, { halo: false, shadow: false });
+  ctx.globalAlpha = 0.8;
+  drawGem(ctx, { x: w * 0.76, y: cy + 1, r: r1 * 0.9, tier: 8, angle: 0.15 }, time, { halo: false, shadow: false });
+  PALETTE = prevPalette;
+  THEME = saved;
+  ctx.restore();
 }
 
 export { DESIGN_WIDTH };

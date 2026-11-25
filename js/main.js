@@ -4,14 +4,29 @@ import { Game } from './game.js';
 import { AudioEngine } from './audio.js';
 import { AdBridge } from './admob-bridge.js';
 import { detectLang, createI18n, applyStaticText } from './i18n.js';
-import { STORAGE, TIERS, tierOf, DESIGN_WIDTH } from './config.js';
-import { drawGemIcon } from './render.js';
+import { STORAGE, TIERS, tierOf, ECONOMY } from './config.js';
+import { drawGemIcon, setTheme as setRenderTheme } from './render.js';
+import { Profile } from './profile.js';
+import { themeById } from './themes.js';
+import { Lobby } from './lobby.js';
+import { Shop } from './shop.js';
+import { Codex } from './codex.js';
 
 const params = new URLSearchParams(location.search);
 const TEST = params.get('test') === '1';
 const FAST = TEST || params.get('fast') === '1';
 
-const t = createI18n(detectLang());
+const readLS = (key, fallback = null) => {
+  try {
+    const v = localStorage.getItem(key);
+    return v === null ? fallback : v;
+  } catch (e) { return fallback; }
+};
+const writeLS = (key, value) => {
+  try { localStorage.setItem(key, String(value)); } catch (e) { /* private mode */ }
+};
+
+let t = createI18n(detectLang(readLS(STORAGE.lang)));
 applyStaticText(t);
 
 const $ = (id) => document.getElementById(id);
@@ -30,17 +45,22 @@ const overOverlay = $('over');
 const adOverlay = $('ad');
 
 const btnSound = $('btn-sound');
+const btnLobbySound = $('btn-lobby-sound');
 const btnPause = $('btn-pause');
 const btnBomb = $('btn-bomb');
 const btnSwap = $('btn-swap');
 const bombCount = $('bomb-count');
 const swapCount = $('swap-count');
+const hudCoinValue = $('hud-coin-value');
 
 const audio = new AudioEngine();
 let pendingTier = 1;
 let soundOn = true;
-try { soundOn = localStorage.getItem(STORAGE.sound) !== '0'; } catch (e) { /* ignore */ }
+soundOn = readLS(STORAGE.sound) !== '0';
 audio.setEnabled(soundOn);
+
+const profile = new Profile();
+setRenderTheme(profile.themeId);
 
 /* ------------------------------------------------------------------ ads */
 
@@ -115,9 +135,10 @@ const game = new Game({
   canvas,
   audio,
   i18n: t,
+  profile,
   onScore: (score, best) => {
     scoreEl.textContent = format(score);
-    bestEl.textContent = format(best);
+    bestEl.textContent = format(Math.max(score, best));
     scoreEl.classList.remove('bump');
     void scoreEl.offsetWidth;
     scoreEl.classList.add('bump');
@@ -131,6 +152,10 @@ const game = new Game({
       if (!info?.auto) pauseOverlay.hidden = false;
     } else if (state === 'over') {
       showGameOver(info);
+    } else if (state === 'idle' && info?.toLobby) {
+      pauseOverlay.hidden = true;
+      overOverlay.hidden = true;
+      goLobby();
     }
   },
   onNext: (cur) => { pendingTier = cur; renderNext(); },
@@ -146,12 +171,175 @@ const game = new Game({
     stage.style.setProperty('--danger', String(level));
   },
   onToast: (msg) => showToast(msg),
+  onCoins: (run, delta) => {
+    refreshCoins();
+    if (delta > 0) {
+      hudCoinValue.classList.remove('bump');
+      void hudCoinValue.offsetWidth;
+      hudCoinValue.classList.add('bump');
+    }
+  },
   onCombo: (n) => {
     if (n >= 3) srLive.textContent = `${n}x combo`;
   }
 });
 
-window.__NGM__ = { game, bridge, audio, version: '1.0.0', t };
+/* ------------------------------------------------------------- screens */
+
+const lobby = new Lobby(appApi());
+const shop = new Shop(appApi());
+const codex = new Codex(appApi());
+
+/* The api object is built after the views so that each view receives the same
+ * live getters; it only ever calls back into functions defined below. */
+function appApi() {
+  return {
+    get t() { return t; },
+    profile,
+    game,
+    audio,
+    format: (n) => format(n),
+    showToast: (msg) => showToast(msg),
+    onPlay: () => play(),
+    openScreen: (which) => openPanel(which),
+    closePanel: () => closePanel(),
+    requestAd: (placement) => requestAd(placement),
+    applyTheme: (id) => applyTheme(id),
+    toggleSound: () => toggleSound(),
+    setLang: (lang) => setLang(lang),
+    refreshViews: () => refreshViews()
+  };
+}
+
+let screen = 'lobby';
+
+function play() {
+  audio.unlock();
+  setScreen('game');
+  if (!tutorialDone()) {
+    openTutorial();
+  } else {
+    startRun();
+  }
+}
+
+function startRun() {
+  runRecorded = false;
+  game.restart();
+}
+
+let runRecorded = false;
+
+function setScreen(name) {
+  screen = name;
+  if (name === 'game') {
+    lobby.hide();
+    shop.hide();
+    codex.hide();
+    game.setVisible(true);
+    scheduleResize();
+    return;
+  }
+  game.setVisible(false);
+  if (name === 'lobby') {
+    shop.hide();
+    codex.hide();
+    lobby.show();
+  } else {
+    lobby.show();
+    lobby.pauseLoop();
+    if (name === 'shop') { codex.hide(); shop.show(); }
+    else { shop.hide(); codex.show(); }
+  }
+}
+
+function openPanel(which) {
+  audio.ui();
+  setScreen(which);
+}
+
+function closePanel() {
+  audio.ui();
+  setScreen('lobby');
+}
+
+function goLobby() {
+  setScreen('lobby');
+}
+
+function refreshCoins() {
+  const text = format(profile.coins);
+  const hud = $('hud-coin-value');
+  if (hud) hud.textContent = text;
+}
+
+function refreshViews() {
+  refreshCoins();
+  if (screen === 'lobby') lobby.refresh();
+  if (screen === 'shop') shop.refresh();
+  if (screen === 'codex') codex.refresh();
+  drawCodex();
+  renderNext();
+}
+
+function applyTheme(id) {
+  const th = themeById(id);
+  game.setTheme(th.id);
+  const frame = $('frame');
+  frame.style.setProperty('--theme-glow-1', th.ui[0]);
+  frame.style.setProperty('--theme-glow-2', th.ui[1]);
+  document.body.dataset.theme = th.id;
+  lobby.refresh();
+  if (screen === 'codex') codex.refresh();
+  if (screen === 'shop') shop.render();
+}
+
+/* ------------------------------------------------------------- language */
+
+function setLang(lang) {
+  if (lang !== 'ko' && lang !== 'en') return;
+  writeLS(STORAGE.lang, lang);
+  t = createI18n(lang);
+  applyStaticText(t);
+  game.i18n = t;
+  audio.ui();
+  lobby.refresh();
+  shop.render();
+  codex.refresh();
+  drawTutorialArt();
+  drawCodex();
+  renderNext();
+  syncSoundButtons();
+  if (screen === 'lobby') lobby.refresh();
+}
+
+/* ------------------------------------------------------------------ init */
+
+function init() {
+  applyTheme(profile.themeId);
+  profile.on((p, kind) => {
+    refreshCoins();
+    if (kind === 'coins' || kind === 'packs' || kind === 'themes' || kind === 'theme' || kind === 'plays') {
+      if (screen === 'lobby') lobby.refresh();
+      if (kind === 'packs' && screen === 'shop') shop.refresh();
+    }
+  });
+  if (TEST) {
+    lobby.hide();
+    game.setVisible(true);
+  } else {
+    setScreen('lobby');
+  }
+}
+
+window.__NGM__ = {
+  game, bridge, audio, profile, lobby, shop, codex,
+  version: '1.1.0',
+  get t() { return t; },
+  setLang, applyTheme, setScreen
+};
+
+/* ------------------------------------------------------------ utilities */
 
 function format(n) {
   return (n || 0).toLocaleString(t.lang === 'ko' ? 'ko-KR' : 'en-US');
@@ -290,6 +478,7 @@ function showToast(msg, color) {
   if (!msg) return;
   toastEl.textContent = msg;
   if (color) toastEl.style.color = color;
+  else toastEl.style.color = '';
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1900);
@@ -300,31 +489,55 @@ function showGameOver(info) {
   $('final-best').textContent = format(info.best);
   $('record-pill').hidden = !info.newRecord;
   $('btn-revive').hidden = !info.canRevive;
+  let earned = game.coinsRun;
+  if (!runRecorded) {
+    runRecorded = true;
+    profile.recordRun();
+    const bonus = ECONOMY.runBonus(info.score);
+    if (bonus > 0) {
+      profile.addCoins(bonus);
+      earned += bonus;
+    }
+    refreshCoins();
+    if (screen === 'lobby') lobby.refresh();
+  }
+  const runCoins = $('run-coins');
+  runCoins.hidden = earned <= 0;
+  $('run-coins-value').textContent = '+' + format(earned);
   overOverlay.hidden = false;
   srLive.textContent = `${t('gameOver')} ${info.score}`;
 }
 
 /* sound */
 
+function syncSoundButtons() {
+  for (const btn of [btnSound, btnLobbySound]) {
+    if (!btn) continue;
+    btn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+    btn.setAttribute('aria-label', soundOn ? t('soundOff') : t('soundOn'));
+  }
+}
+
 function setSound(on) {
   soundOn = on;
   audio.setEnabled(on);
-  btnSound.setAttribute('aria-pressed', on ? 'true' : 'false');
-  btnSound.setAttribute('aria-label', on ? t('soundOff') : t('soundOn'));
-  try { localStorage.setItem(STORAGE.sound, on ? '1' : '0'); } catch (e) { /* ignore */ }
+  writeLS(STORAGE.sound, on ? '1' : '0');
+  syncSoundButtons();
 }
-setSound(soundOn);
 
-btnSound.addEventListener('click', () => {
+function toggleSound() {
   audio.unlock();
   setSound(!soundOn);
   if (soundOn) audio.ui();
-});
+}
+
+btnSound.addEventListener('click', toggleSound);
 
 /* tutorial */
 
 function tutorialDone() {
-  try { return localStorage.getItem(STORAGE.tutorial) === '1'; } catch (e) { return TEST; }
+  if (TEST) return true;
+  try { return localStorage.getItem(STORAGE.tutorial) === '1'; } catch (e) { return false; }
 }
 
 function openTutorial() {
@@ -334,9 +547,9 @@ function openTutorial() {
 
 $('btn-start').addEventListener('click', () => {
   audio.unlock();
-  try { localStorage.setItem(STORAGE.tutorial, '1'); } catch (e) { /* ignore */ }
+  writeLS(STORAGE.tutorial, '1');
   tutorial.hidden = true;
-  game.startFromTutorial();
+  startRun();
   audio.ui();
 });
 
@@ -359,8 +572,13 @@ $('btn-resume').addEventListener('click', () => {
 $('btn-restart').addEventListener('click', () => {
   pauseOverlay.hidden = true;
   overOverlay.hidden = true;
-  game.restart();
+  startRun();
   audio.ui();
+});
+
+$('btn-to-lobby').addEventListener('click', () => {
+  audio.ui();
+  game.toLobby();
 });
 
 window.addEventListener('keydown', (e) => {
@@ -374,8 +592,13 @@ window.addEventListener('keydown', (e) => {
 
 $('btn-again').addEventListener('click', () => {
   overOverlay.hidden = true;
-  game.restart();
+  startRun();
   audio.ui();
+});
+
+$('btn-over-lobby').addEventListener('click', () => {
+  audio.ui();
+  game.toLobby();
 });
 
 $('btn-revive').addEventListener('click', async () => {
@@ -448,13 +671,19 @@ async function boot() {
     document.body.classList.add('native');
     bridge.showBanner();
   }
+  init();
+  syncSoundButtons();
   game.start();
   doResize();
   pendingTier = game.currentTier;
   renderNext();
   renderBoosters(game.boosters);
-  if (!tutorialDone()) openTutorial();
-  if (TEST) tutorial.hidden = true;
+  refreshCoins();
+
+  if (!TEST && profile.fresh) {
+    writeLS(STORAGE.welcome, '1');
+    setTimeout(() => showToast(t('welcome')), 700);
+  }
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     try {
@@ -489,5 +718,11 @@ window.__NGM_TEST__ = {
   useBomb: () => game.useBomb(),
   swap: () => game.swapGem(),
   revive: () => game.revive(),
-  restart: () => game.restart()
+  restart: () => game.restart(),
+  play: () => play(),
+  lobby: () => setScreen('lobby'),
+  screen: () => screen,
+  coins: () => profile.coins,
+  addCoins: (n) => { profile.addCoins(n); refreshCoins(); },
+  equip: (id) => { profile.equipTheme(id); applyTheme(id); }
 };

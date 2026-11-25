@@ -29,6 +29,12 @@
           <span class="v" id="best">0</span>
         </div>
         <div class="hud-actions">
+          <div class="coin-pill sm" id="hud-coins">
+            <svg class="star" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+              <path d="M12 2.6l2.72 5.9 6.28.82-4.6 4.4 1.16 6.3L12 16.9l-5.56 3.12 1.16-6.3-4.6-4.4 6.28-.82z" fill="currentColor"/>
+            </svg>
+            <b id="hud-coin-value">0</b>
+          </div>
           <button id="btn-sound" class="icon-btn" type="button" aria-label="Sound" aria-pressed="true">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 14V10a1 1 0 0 1 1-1h2.6l4-3.2a.8.8 0 0 1 1.3.6v11.2a.8.8 0 0 1-1.3.6l-4-3.2H5a1 1 0 0 1-1-1Z"/>
@@ -87,6 +93,179 @@
         <div class="banner-slot"><span data-i18n="banner">광고</span></div>
       </div>
 
+      <!-- ============================================================ lobby -->
+      <section id="lobby" class="screen" aria-labelledby="lobby-title">
+        <canvas id="lobby-art" aria-hidden="true"></canvas>
+        <div class="lobby-veil" aria-hidden="true"></div>
+        <div class="lobby-content">
+          <header class="lobby-top">
+            <div class="coin-pill lg" id="lobby-coins" title="Star coins">
+              <svg class="star" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path d="M12 2.6l2.72 5.9 6.28.82-4.6 4.4 1.16 6.3L12 16.9l-5.56 3.12 1.16-6.3-4.6-4.4 6.28-.82z" fill="currentColor"/>
+              </svg>
+              <b id="lobby-coin-value">0</b>
+            </div>
+            <div class="lobby-tools">
+              <div class="lang-seg" role="group" aria-label="Language">
+                <button type="button" data-lang="ko" class="on">KO</button>
+                <button type="button" data-lang="en">EN</button>
+              </div>
+              <button id="btn-lobby-sound" class="icon-btn" type="button" aria-label="Sound" aria-pressed="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 14V10a1 1 0 0 1 1-1h2.6l4-3.2a.8.8 0 0 1 1.3.6v11.2a.8.8 0 0 1-1.3.6l-4-3.2H5a1 1 0 0 1-1-1Z"/>
+                  <path class="wave" d="M16 9.2a3.6 3.6 0 0 1 0 5.6M18.4 6.8a7 7 0 0 1 0 10.4"/>
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="lobby-hero">
+            <p class="logo-kicker" data-i18n="lobbyKicker">MERGE PUZZLE</p>
+            <h1 id="lobby-title" class="logo">
+              <span class="logo-a" id="logo-a">NEON GEM</span>
+              <span class="logo-b" id="logo-b">MERGE</span>
+            </h1>
+            <p class="tagline" data-i18n="lobbyHint">같은 보석을 둘이 만나면, 한 단계 위로 진화</p>
+            <canvas id="lobby-showcase" aria-hidden="true"></canvas>
+            <div class="theme-chip" id="theme-chip">
+              <i class="dot" aria-hidden="true"></i>
+              <span id="theme-chip-name">미드나잇 파스텔</span>
+            </div>
+          </div>
+
+          <div class="lobby-stats">
+            <div class="stat-pill">
+              <span class="k" data-i18n="bestScore">최고 점수</span>
+              <span class="v" id="lobby-best">0</span>
+            </div>
+            <div class="stat-pill">
+              <span class="k" data-i18n="plays">누적 플레이</span>
+              <span class="v"><span id="lobby-plays">0</span><i data-i18n="playsUnit">판</i></span>
+            </div>
+            <div class="stat-pill">
+              <span class="k" data-i18n="codexShort">도감</span>
+              <span class="v" id="lobby-codex">1/11</span>
+            </div>
+          </div>
+
+          <button id="btn-play" class="play-btn" type="button">
+            <span class="play-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8.6 5.4l10 6.6-10 6.6z" fill="currentColor"/></svg>
+            </span>
+            <span class="play-label" data-i18n="play">게임 시작</span>
+          </button>
+
+          <nav class="lobby-tabs" aria-label="Menu">
+            <button id="tab-shop" class="tab" type="button">
+              <span class="tab-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5.2 8.4h13.6l-1.1 10.1a1.6 1.6 0 0 1-1.6 1.4H7.9a1.6 1.6 0 0 1-1.6-1.4z"/>
+                  <path d="M9 8.4V7a3 3 0 0 1 6 0v1.4"/>
+                </svg>
+              </span>
+              <span class="tab-text">
+                <b data-i18n="shop">상점</b>
+                <small id="tab-shop-sub">미드나잇 파스텔</small>
+              </span>
+            </button>
+            <button id="tab-codex" class="tab" type="button">
+              <span class="tab-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 6.4C10.4 5.2 8.3 4.7 5.6 4.8a.8.8 0 0 0-.8.8v11.2c0 .5.4.8.9.8 2.5-.1 4.5.4 6.3 1.6 1.8-1.2 3.8-1.7 6.3-1.6.5 0 .9-.3.9-.8V5.6a.8.8 0 0 0-.8-.8c-2.7-.1-4.8.4-6.4 1.6z"/>
+                  <path d="M12 6.6v12.4"/>
+                </svg>
+              </span>
+              <span class="tab-text">
+                <b data-i18n="codexTab">도감 · 방법</b>
+                <small id="tab-codex-sub">1 / 11</small>
+              </span>
+            </button>
+          </nav>
+        </div>
+      </section>
+
+      <!-- ============================================================= shop -->
+      <section id="shop" class="screen panel" hidden aria-labelledby="shop-title">
+        <header class="panel-head">
+          <button class="back-btn" id="shop-back" type="button" aria-label="Back">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>
+          </button>
+          <div class="panel-titles">
+            <h2 id="shop-title" data-i18n="shopTitle">상점</h2>
+            <p data-i18n="themesHint">장착하면 게임판과 보석 색이 바로 바뀌어요</p>
+          </div>
+          <div class="coin-pill md" id="shop-coins">
+            <svg class="star" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+              <path d="M12 2.6l2.72 5.9 6.28.82-4.6 4.4 1.16 6.3L12 16.9l-5.56 3.12 1.16-6.3-4.6-4.4 6.28-.82z" fill="currentColor"/>
+            </svg>
+            <b id="shop-coin-value">0</b>
+          </div>
+        </header>
+
+        <div class="panel-body">
+          <section class="shop-section">
+            <h3><span data-i18n="themesTitle">보석 테마</span></h3>
+            <div class="theme-list" id="theme-list"></div>
+          </section>
+
+          <section class="shop-section">
+            <h3><span data-i18n="boostersTitle">부스터</span></h3>
+            <div class="booster-shop" id="booster-shop"></div>
+          </section>
+
+          <section class="shop-section">
+            <h3><span data-i18n="coinsTitle">스타 코인</span></h3>
+            <button id="btn-ad-coins" class="ad-coin-card" type="button">
+              <span class="ad-coin-visual" aria-hidden="true">
+                <i class="halo"></i>
+                <svg class="star" viewBox="0 0 24 24" width="22" height="22"><path d="M12 2.6l2.72 5.9 6.28.82-4.6 4.4 1.16 6.3L12 16.9l-5.56 3.12 1.16-6.3-4.6-4.4 6.28-.82z" fill="currentColor"/></svg>
+              </span>
+              <span class="ad-coin-text">
+                <b id="ad-coin-label" data-i18n="adCoinsBtn">광고 보고 스타 코인 +150</b>
+                <small id="ad-coin-sub" data-i18n="reviveNote">한 판에 한 번</small>
+              </span>
+              <span class="ad-coin-go" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5L16 12l-6.5 6.5"/></svg>
+              </span>
+            </button>
+          </section>
+        </div>
+      </section>
+
+      <!-- ============================================================ codex -->
+      <section id="codex-screen" class="screen panel" hidden aria-labelledby="codex-heading">
+        <header class="panel-head">
+          <button class="back-btn" id="codex-back" type="button" aria-label="Back">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>
+          </button>
+          <div class="panel-titles">
+            <h2 id="codex-heading" data-i18n="codexTitleFull">보석 도감</h2>
+            <p id="codex-sub" data-i18n="codexSub">11단계 진화</p>
+          </div>
+          <div class="codex-progress" id="codex-progress">1 / 11</div>
+        </header>
+
+        <div class="panel-body">
+          <div class="codex-grid" id="codex-grid"></div>
+          <p class="codex-note" id="codex-note" data-i18n="lockedGem">아직 못 만난 보석이에요</p>
+
+          <section class="rules">
+            <h3 data-i18n="howTo">게임 방법</h3>
+            <ol class="rule-list">
+              <li><span class="n">1</span><span data-i18n="tutorial1">좌우로 움직여 보석을 떨어뜨려요.</span></li>
+              <li><span class="n">2</span><span data-i18n="tutorial2">같은 보석끼리 만나면 한 단계 위로 진화해요.</span></li>
+              <li><span class="n">3</span><span data-i18n="tutorial3">위험선 위에 2.5초 머무르면 게임이 끝나요.</span></li>
+            </ol>
+            <h3 class="tips-title" data-i18n="tipsTitle">팁</h3>
+            <ul class="tip-list">
+              <li data-i18n="tip1">짧은 간격으로 연달아 합치면 콤보 배수가 붙어요.</li>
+              <li data-i18n="tip2">큰 보석은 바닥에, 작은 보석은 위에 쌓으세요.</li>
+              <li data-i18n="tip3">부스터는 위험선이 가까워질 때 아껴 쓰세요.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
       <!-- tutorial -->
       <section id="tutorial" class="overlay overlay-dim" hidden>
         <div class="card tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tut-title">
@@ -109,6 +288,7 @@
             <button id="btn-resume" class="btn primary" type="button" data-i18n="resume">계속하기</button>
             <button id="btn-restart" class="btn ghost" type="button" data-i18n="restart">다시 시작</button>
           </div>
+          <button id="btn-to-lobby" class="btn quiet" type="button" data-i18n="toLobby">로비로 나가기</button>
         </div>
       </section>
 
@@ -121,6 +301,11 @@
           <p class="sub" id="over-sub" data-i18n="overMsg">보석이 위험선을 넘었어요</p>
           <p class="record" id="record-pill" hidden data-i18n="newRecord">새 최고 기록!</p>
           <div class="best-line"><span data-i18n="best">최고</span><b id="final-best">0</b></div>
+          <div class="earned" id="run-coins" hidden>
+            <span data-i18n="earnedThisRun">이번 판 획득</span>
+            <b id="run-coins-value">+0</b>
+            <svg class="star" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M12 2.6l2.72 5.9 6.28.82-4.6 4.4 1.16 6.3L12 16.9l-5.56 3.12 1.16-6.3-4.6-4.4 6.28-.82z" fill="currentColor"/></svg>
+          </div>
           <button id="btn-revive" class="btn reward" type="button">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="5.5" width="18" height="12" rx="2.6"/><path d="M10.4 9.6l4.2 2.4-4.2 2.4z" fill="currentColor" stroke="none"/><path d="M8 20.5h8"/>
@@ -129,6 +314,7 @@
             <em data-i18n="reviveNote">한 판에 한 번</em>
           </button>
           <button id="btn-again" class="btn primary" type="button" data-i18n="retry">다시 도전</button>
+          <button id="btn-over-lobby" class="link-btn" type="button" data-i18n="lobby">로비로</button>
         </div>
       </section>
 

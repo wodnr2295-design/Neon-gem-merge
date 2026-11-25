@@ -1,5 +1,7 @@
 /* Neon Gem Merge — tiny i18n layer.
  * Korean by default; English automatically for non-Korean devices.
+ * The lobby language switch rewrites every [data-i18n] node and asks the
+ * dynamic screens to render again.
  */
 
 const KO = {
@@ -47,7 +49,60 @@ const KO = {
   banner: '광고',
   rewardBomb: '젬 제거 +1',
   rewardSwap: '젬 교체 +1',
-  reviveReward: '부활'
+  reviveReward: '부활',
+
+  /* lobby */
+  play: '게임 시작',
+  lobbyKicker: 'MERGE PUZZLE',
+  lobbyHint: '같은 보석을 둘이 만나면, 한 단계 위로 진화',
+  bestScore: '최고 점수',
+  plays: '누적 플레이',
+  playsUnit: '판',
+  codexShort: '도감',
+  star: '스타 코인',
+  shop: '상점',
+  codexTab: '도감 · 방법',
+  welcome: '웰컴 보너스 +150',
+  toLobby: '로비로 나가기',
+  lobby: '로비로',
+  earnedThisRun: '이번 판 획득',
+
+  /* shop */
+  shopTitle: '상점',
+  themesTitle: '보석 테마',
+  themesHint: '장착하면 게임판과 보석 색이 바로 바뀌어요',
+  boostersTitle: '부스터',
+  coinsTitle: '스타 코인',
+  equipped: '장착 중',
+  equip: '장착하기',
+  buy: '구매',
+  notEnough: '코인이 부족해요',
+  bought: '구매 완료! 바로 장착했어요',
+  equippedToast: '테마를 장착했어요',
+  adCoinsBtn: '광고 보고 스타 코인 +150',
+  adCoinsWait: '광고 준비 중…',
+  adCoinsToast: '스타 코인 +150',
+  adCoinsFree: '몇 번이든 무료',
+  boosterBombDesc: '원하는 보석 하나를 없애요',
+  boosterSwapDesc: '다음 보석을 다른 보석으로 바꿔요',
+  packNote: '다음 판 시작 시 +2',
+  packPending: '대기',
+  ownedLabel: '보유',
+  packUnit: '개',
+
+  /* codex */
+  codexTitleFull: '보석 도감',
+  codexSub: '11단계 진화',
+  lockedGem: '아직 못 만난 보석이에요',
+  howTo: '게임 방법',
+  tipsTitle: '팁',
+  tip1: '짧은 간격으로 연달아 합치면 콤보 배수가 붙어요.',
+  tip2: '큰 보석은 바닥에, 작은 보석은 위에 쌓으세요.',
+  tip3: '부스터는 위험선이 가까워질 때 아껴 쓰세요.',
+  points: '점',
+  baseGem: '기본 보석',
+  discovered: '발견',
+  codexComplete: '모든 보석을 만났어요!'
 };
 
 const EN = {
@@ -95,16 +150,72 @@ const EN = {
   banner: 'AD',
   rewardBomb: 'Remove gem +1',
   rewardSwap: 'Swap gem +1',
-  reviveReward: 'Revive'
+  reviveReward: 'Revive',
+
+  /* lobby */
+  play: 'Start game',
+  lobbyKicker: 'MERGE PUZZLE',
+  lobbyHint: 'Two matching gems become one step brighter',
+  bestScore: 'BEST SCORE',
+  plays: 'RUNS',
+  playsUnit: '',
+  codexShort: 'CODEX',
+  star: 'STAR COINS',
+  shop: 'Shop',
+  codexTab: 'Codex & how',
+  welcome: 'Welcome bonus +150',
+  toLobby: 'Leave to lobby',
+  lobby: 'Lobby',
+  earnedThisRun: 'Earned this run',
+
+  /* shop */
+  shopTitle: 'Shop',
+  themesTitle: 'Gem themes',
+  themesHint: 'One tap recolours the board and gems',
+  boostersTitle: 'Boosters',
+  coinsTitle: 'Star coins',
+  equipped: 'Equipped',
+  equip: 'Equip',
+  buy: 'Buy',
+  notEnough: 'Not enough coins',
+  bought: 'Purchased — equipped!',
+  equippedToast: 'Theme equipped',
+  adCoinsBtn: 'Watch ad · +150 coins',
+  adCoinsWait: 'Ad loading…',
+  adCoinsToast: '+150 star coins',
+  adCoinsFree: 'Free, as often as you like',
+  boosterBombDesc: 'Remove any one gem',
+  boosterSwapDesc: 'Swap the next gem',
+  packNote: '+2 at the start of your next run',
+  packPending: 'queued',
+  ownedLabel: 'Owned',
+  packUnit: '',
+
+  /* codex */
+  codexTitleFull: 'Gem codex',
+  codexSub: '11 evolutions',
+  lockedGem: 'A gem you have not met yet',
+  howTo: 'How to play',
+  tipsTitle: 'Tips',
+  tip1: 'Merge again quickly to build a combo multiplier.',
+  tip2: 'Keep big gems low and stack small ones above them.',
+  tip3: 'Save boosters for when the danger line is close.',
+  points: 'pts',
+  baseGem: 'starting gem',
+  discovered: 'Found',
+  codexComplete: 'You have met every gem!'
 };
 
 const DICTS = { ko: KO, en: EN };
 
-export function detectLang() {
+export function detectLang(savedLang = null) {
   let lang = 'ko';
   try {
-    const nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'ko';
-    if (!/^ko/i.test(nav)) lang = 'en';
+    if (savedLang === 'ko' || savedLang === 'en') lang = savedLang;
+    else {
+      const nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'ko';
+      if (!/^ko/i.test(nav)) lang = 'en';
+    }
     const forced = new URLSearchParams(location.search).get('lang');
     if (forced === 'ko' || forced === 'en') lang = forced;
   } catch (e) { /* SSR / privacy mode */ }

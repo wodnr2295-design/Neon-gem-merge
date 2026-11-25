@@ -3,7 +3,7 @@
 같은 보석을 합쳐 **11단계 코스믹 다이아몬드**까지 진화시키는 오리지널 캐주얼 퍼즐 게임입니다.
 외부 이미지·음원 없이 모든 그래픽을 Canvas 2D로 그리고, 모든 소리를 Web Audio로 합성합니다.
 
-- **웹/PWA**: `www/` 를 정적 호스팅하면 바로 실행 (오프라인 지원, 홈 화면 설치)
+- **웹/PWA**: 저장소 루트를 정적 호스팅하면 바로 실행 (오프라인 지원, 홈 화면 설치)
 - **앱**: Capacitor 8 프로젝트로 Android / iOS 빌드 (AdMob 보상형 광고 연동)
 - **디자인**: 딥 슬레이트 배경 + 파스텔 주얼 그라데이션, 유리 광택, 미니멀 UI
 
@@ -13,6 +13,15 @@
 > (GitHub Pages 설정: `Deploy from a branch` → `main` → `/ (root)`)
 > `tests/`, `tools/`, Capacitor 설정 파일은 배포에 필요 없어 원본 프로젝트 폴더에만 있습니다.
 
+## 화면
+
+| 화면 | 내용 |
+| --- | --- |
+| 🏠 로비 | 앱 진입 첫 화면. 스타 코인 · 사운드 · 언어(KO/EN), 움직이는 타이틀과 장착 테마 보석, 최고 점수 · 누적 플레이 · 도감 배지, `게임 시작`, `상점`, `도감 · 방법` |
+| 🛍️ 상점 | 테마 4종(미드나잇 파스텔 / 오로라 트와일라잇 / 체리 블라썸 / 딥 스페이스), 부스터 패키지, 광고로 스타 코인 |
+| 📖 도감 · 방법 | 1~11단계 보석 도감(미발견은 실루엣 + 잠금), 점수, 3줄 규칙과 팁 |
+| 🎮 게임 | 기존 보드. 일시정지에서 `로비로 나가기`, 게임 오버에 이번 판 획득 코인 |
+
 ## 실행
 
 ```bash
@@ -21,7 +30,7 @@ python3 -m http.server 8080
 # → http://localhost:8080
 ```
 
-자동 테스트 24종·브라우저 QA(`tests/qa_browser.py`, Chromium 필요)는 원본 프로젝트 폴더에서 실행합니다.
+자동 테스트 24종·브라우저 QA(`tests/qa_browser.py`, `tests/qa_lobby.py`)는 원본 프로젝트 폴더에서 실행합니다.
 
 ## 조작
 
@@ -39,6 +48,20 @@ python3 -m http.server 8080
   - 갓 떨어뜨린 보석은 1초간 유예되고, 위험선을 빠르게 지나가는 보석은 시간이 쌓이지 않습니다.
 - 드롭 가능한 단계: 1~5단계 (가중치 적용), 다음 보석은 하단에 미리 표시됩니다.
 
+## 스타 코인
+
+플레이만으로 모으는 게임 내 재화입니다(현금 결제 없음).
+
+| 얻는 곳 | 양 |
+| --- | --- |
+| 보석 합치기 | 합쳐진 단계만큼 (2→+2 … 11→+11) |
+| 코스믹 다이아끼리 합치기 | +25 |
+| 판 종료 보너스 | 점수 ÷ 200 |
+| 상점의 보상형 광고 | +150 |
+
+테마 가격: 오로라 450 / 체리 650 / 딥 스페이스 900 · 부스터 패키지 100(다음 판 +2).
+처음 설치한 계정에는 웰컴 보너스 150 코인이 지급됩니다.
+
 ## 부스터와 광고
 
 | 기능 | 내용 |
@@ -49,50 +72,22 @@ python3 -m http.server 8080
 | 배너 | 하단 320×50 예약 영역 (플레이 영역을 가리지 않음) |
 
 웹에서는 **시뮬레이션 광고 모달**로 동작하고, Capacitor 네이티브 환경에서는
-`@capacitor-community/admob` 의 보상형/배너 광고를 호출합니다 (`www/js/admob-bridge.js`).
+`@capacitor-community/admob` 의 보상형/배너 광고를 호출합니다 (`js/admob-bridge.js`).
+광고 단위 ID는 `js/admob-bridge.js` 상단의 `AD_IDS`에서 교체합니다.
 
-## 구조
+## 파일
 
 ```
-site/neon-gem-merge/
-├─ www/
-│  ├─ index.html            # 앱 셸 + 오버레이(튜토리얼/일시정지/게임오버/광고)
-│  ├─ manifest.json         # PWA 매니페스트 (portrait, standalone)
-│  ├─ sw.js                 # 오프라인 캐시 (버전 올리면 갱신)
-│  ├─ css/style.css         # 디자인 시스템 (딥 슬레이트 + 파스텔 주얼)
-│  ├─ fonts/                # NGM Sans (Noto Sans KR 서브셋 57KB) + OFL 라이선스
-│  ├─ icons/                # SVG + 192/512/maskable/애플 터치 아이콘
-│  └─ js/
-│     ├─ config.js          # 11단계 보석 정의, 물리/규칙 상수
-│     ├─ physics.js         # 자체 2D 원형 강체 엔진 (서브스텝 8, 임펄스+마찰+회전)
-│     ├─ render.js          # 보석/배경/파티클 절차적 렌더링
-│     ├─ audio.js           # Web Audio 신디사이저 (드롭/합체/폭발/게임오버)
-│     ├─ game.js            # 게임 규칙, 병합 체인, 부스터, 부활, HUD 이벤트
-│     ├─ i18n.js            # 한국어 기본 + 비한국 기기 자동 영어
-│     ├─ main.js            # 부트스트랩, UI 배선, 광고 흐름, 화면 크기 처리
-│     └─ admob-bridge.js    # 웹 시뮬레이션 ↔ 네이티브 AdMob 어댑터
-├─ tests/
-│  ├─ qa_browser.py         # 실제 브라우저 QA (물리 스트레스 + 플레이 시나리오 + 스크린샷)
-│  ├─ stress.js             # 물리·로직 자동 테스트 24종
-│  ├─ extras.py             # 로케일·저장·PWA 오프라인 체크
-│  ├─ visual.py             # 360/390/430 뷰포트 레이아웃 캡처
-│  ├─ QA_REPORT.md          # 최근 QA 결과 요약
-│  └─ QA_RESULTS.json       # 원시 결과
-├─ tools/                   # 아이콘 소스/생성 스크립트
-├─ package.json             # Capacitor 의존성 및 스크립트
-├─ capacitor.config.json    # App ID / App Name / webDir
-└─ STORE_GUIDE.md           # AdMob·Play 스토어·App Store 등록 가이드
+index.html · manifest.json · sw.js
+css/style.css
+js/  config.js · physics.js · render.js · themes.js · game.js
+     audio.js · i18n.js · profile.js · lobby.js · shop.js · codex.js
+     main.js · admob-bridge.js
+fonts/ · icons/
 ```
-
-## 품질
-
-- 물리: 서브스텝 8회(최대 1/480초), 임펄스 해석 6회 반복, 마찰·회전 포함, 30개 더미 15초 후 평균 이동 0.00px
-- 자동 테스트: 24종 통과 (바닥 관통, 벽 끼임, 무한 겹침, 연쇄 병합, 위험선 유예, 부활, 재시작 누수 등)
-- 브라우저 QA: 45개 체크 통과, 390×844 모바일 / 1280×900 데스크톱, 콘솔 에러 0건
-- 접근성: 버튼 44px 이상 터치 영역, 키보드 조작(←/→/Space/Esc), `aria-live` 알림, 모션 감소 설정 존중
 
 ## 라이선스 / 저작권
 
 - 코드·그래픽·사운드: 이 프로젝트에서 새로 작성 (외부 이미지·음원 0개)
-- 폰트: Noto Sans KR 서브셋(SIL OFL 1.1, `www/fonts/OFL.txt`)을 번들. 기기에 없으면 Pretendard → 시스템 폰트로 대체
+- 폰트: Noto Sans KR 서브셋(SIL OFL 1.1, `fonts/OFL.txt`)을 번들. 기기에 없으면 Pretendard → 시스템 폰트로 대체
 - 앱 이름/아이콘/캐릭터는 독자 제작물이며, 특정 상용 게임의 리소스를 사용하지 않습니다.

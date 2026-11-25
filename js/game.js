@@ -3,10 +3,10 @@
  */
 
 import {
-  DESIGN_WIDTH, PHYSICS, PLAY, TIERS, MAX_TIER, tierOf, mergeScore, STORAGE
+  DESIGN_WIDTH, PHYSICS, PLAY, TIERS, MAX_TIER, tierOf, mergeScore, STORAGE, ECONOMY
 } from './config.js';
 import { PhysicsWorld, CircleBody } from './physics.js';
-import { drawGem, drawGemIcon, Particles, makeDust, drawBackground, hexA } from './render.js';
+import { drawGem, drawGemIcon, Particles, makeDust, drawBackground, hexA, setTheme, getTheme } from './render.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const easeOutBack = (t) => {
@@ -20,6 +20,7 @@ export class Game {
     this.ctx = this.canvas.getContext('2d', { alpha: false });
     this.audio = opts.audio ?? null;
     this.i18n = opts.i18n ?? ((k) => k);
+    this.profile = opts.profile ?? null;
     this.reducedMotion = false;
     this.on = {
       score: opts.onScore || (() => {}),
@@ -29,8 +30,12 @@ export class Game {
       codex: opts.onCodex || (() => {}),
       danger: opts.onDanger || (() => {}),
       toast: opts.onToast || (() => {}),
-      combo: opts.onCombo || (() => {})
+      combo: opts.onCombo || (() => {}),
+      coins: opts.onCoins || (() => {})
     };
+
+    this.theme = getTheme();
+    this.coinsRun = 0;
 
     this.scale = 1;
     this.cssW = 360;
@@ -61,6 +66,7 @@ export class Game {
     this.score = 0;
     this.best = this._loadNumber(STORAGE.best);
     this.newRecord = false;
+    this.visible = true;
     this.codex = new Set(this._loadJSON(STORAGE.codex, [1]));
     this.combo = 0;
     this.lastMergeAt = -10;
@@ -83,7 +89,7 @@ export class Game {
     this.metrics = { frames: 0, steps: 0, lastFrameMs: 0, peakGems: 0 };
     this._listeners = [];
 
-    this.reset(true);
+    this.reset(true, { keepPacks: true });
     this.bindInput();
     this.bindLifecycle();
   }
@@ -215,7 +221,7 @@ export class Game {
   }
 
   /* --------------------------------------------------------------- state */
-  reset(silent = false) {
+  reset(silent = false, options = {}) {
     this.world.clear();
     this.world.gravity = PHYSICS.gravity;
     this.particles.clear();
@@ -233,8 +239,11 @@ export class Game {
     this.shake = 0;
     this.state = 'idle';
     this.pendingDrop = null;
-    this.boosters.bomb = 1;
-    this.boosters.swap = 1;
+    this.coinsRun = 0;
+    const packs = this.profile && !options.keepPacks ? this.profile.takePacks() : { bomb: 0, swap: 0 };
+    this.boosters.bomb = 1 + (packs.bomb || 0);
+    this.boosters.swap = 1 + (packs.swap || 0);
+    this.pendingPacks = packs;
     this.currentTier = this.randomTier();
     this.nextTier = this.randomTier();
     this.aim.x = DESIGN_WIDTH / 2;
@@ -243,7 +252,36 @@ export class Game {
     this.on.next(this.currentTier, this.nextTier);
     this.on.boosters(this.boosters);
     this.on.danger(0);
+    this.on.coins(this.coinsRun, 0);
     if (!silent) this.on.state('idle');
+  }
+
+  /* ------------------------------------------------------------------ coins */
+
+  _earnCoins(n) {
+    const amount = Math.floor(n || 0);
+    if (amount <= 0) return;
+    this.coinsRun += amount;
+    if (this.profile) this.profile.addCoins(amount);
+    this.on.coins(this.coinsRun, amount);
+  }
+
+  /* ------------------------------------------------------------------ theme */
+
+  setTheme(id) {
+    this.theme = setTheme(id);
+    return this.theme;
+  }
+
+  /** Leave the run without recording a score and return to the lobby. */
+  toLobby() {
+    this.reset(true, { keepPacks: true });
+    this.state = 'idle';
+    this.on.state('idle', { toLobby: true });
+  }
+
+  setVisible(visible) {
+    this.visible = !!visible;
   }
 
   randomTier() {
@@ -393,6 +431,7 @@ export class Game {
     if (a.tier >= MAX_TIER) {
       const pts = 1500 * mult;
       this.score += pts;
+      this._earnCoins(ECONOMY.cosmicCoin);
       this._burstAt(mx, my, MAX_TIER, true);
       this.particles.ring(mx, my, '#FFFFFF', 130, 2);
       this._scorePulse(mx, my - 10, pts, 20);
@@ -422,6 +461,7 @@ export class Game {
         this.on.combo(Math.min(this.combo, 9));
       }
       this.unlockCodex(level);
+      this._earnCoins(ECONOMY.mergeCoin(level));
       this.metrics.peakGems = Math.max(this.metrics.peakGems, this.world.count);
     }
     this.on.score(this.score, this.best);
@@ -536,6 +576,10 @@ export class Game {
       this.lastFrame = now;
       const dt = clamp(raw, 0, 1 / 20);
       this.metrics.frames++;
+      if (!this.visible) {
+        this._raf = requestAnimationFrame(frame);
+        return;
+      }
       const t0 = performance.now();
       this.update(dt);
       this.render(now);
@@ -623,7 +667,7 @@ export class Game {
     ctx.clearRect(0, 0, w, h);
 
     const time = (now - this.startTime) / 1000;
-    drawBackground(ctx, w, h, time, this.dust);
+    drawBackground(ctx, w, h, time, this.dust, this.theme);
 
     // shake
     let ox = 0, oy = 0;
@@ -862,6 +906,7 @@ export class Game {
       currentTier: this.currentTier,
       nextTier: this.nextTier,
       codex: Array.from(this.codex),
+      coinsRun: this.coinsRun,
       particles: this.particles.items.length,
       metrics: { ...this.metrics },
       diag: this.world.diagnose()

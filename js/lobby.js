@@ -271,11 +271,35 @@ export class Lobby {
     const midY = h * 0.55;
 
     // a faint pool of light under the trio
-    const pool = ctx.createRadialGradient(w * 0.5, midY + h * 0.22, 0, w * 0.5, midY + h * 0.22, w * 0.42);
-    pool.addColorStop(0, theme.ui[0].replace(/[\d.]+\)$/, '0.10)'));
+    const pool = ctx.createRadialGradient(w * 0.5, midY + h * 0.20, 0, w * 0.5, midY + h * 0.20, w * 0.46);
+    pool.addColorStop(0, theme.ui[0].replace(/[\d.]+\)$/, '0.16)'));
+    pool.addColorStop(0.55, theme.ui[1].replace(/[\d.]+\)$/, '0.07)'));
     pool.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = pool;
     ctx.fillRect(0, 0, w, h);
+
+    // a few slowly twinkling motes around the trio
+    const motes = [
+      [0.14, 0.30, 2.6], [0.86, 0.36, 2.2], [0.30, 0.80, 1.9],
+      [0.70, 0.14, 2.4], [0.94, 0.74, 1.7], [0.06, 0.66, 1.5]
+    ];
+    for (let i = 0; i < motes.length; i++) {
+      const [mx, my, ms] = motes[i];
+      const tw = 0.25 + 0.75 * Math.pow(Math.abs(Math.sin(time * 0.55 + i * 1.9)), 1.6);
+      const x = w * mx;
+      const y = h * my;
+      ctx.save();
+      ctx.globalAlpha = tw * 0.55;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.moveTo(x, y - ms * 3);
+      ctx.quadraticCurveTo(x, y, x + ms * 3, y);
+      ctx.quadraticCurveTo(x, y, x, y + ms * 3);
+      ctx.quadraticCurveTo(x, y, x - ms * 3, y);
+      ctx.quadraticCurveTo(x, y, x, y - ms * 3);
+      ctx.fill();
+      ctx.restore();
+    }
 
     const k = this.k || 1;
     const base = Math.max(14, Math.min(42, h * 0.32, w * 0.125) * Math.max(0.78, k));

@@ -334,7 +334,7 @@ function init() {
 
 window.__NGM__ = {
   game, bridge, audio, profile, lobby, shop, codex,
-  version: '1.1.0',
+  version: '1.2.0',
   get t() { return t; },
   setLang, applyTheme, setScreen
 };

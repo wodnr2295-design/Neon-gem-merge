@@ -194,7 +194,9 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 
 .toast {
   position: absolute;
-  top: 64px;
+  /* sits just below the danger line (78 world units from the stage top) so the
+     line stays readable while a toast is showing */
+  top: 96px;
   left: 50%;
   transform: translate(-50%, -8px);
   padding: 7px 15px;
